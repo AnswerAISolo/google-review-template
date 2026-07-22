@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance Studio 服務回饋</title>
+<style>
+  :root{--main:#c8102e;--bg:#f5f6f8;--card:#fff;--ink:#222;--sub:#666;--line:#e3e5e9;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .wrap{max-width:460px;margin:0 auto;padding:22px 16px 60px}
+  .logo{text-align:center;margin:8px 0 2px}
+  .logo b{font-size:22px;letter-spacing:1px}
+  h1{font-size:19px;text-align:center;margin:6px 0 2px}
+  .sub{text-align:center;color:var(--sub);font-size:13px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  label.q{display:block;font-weight:700;margin-bottom:10px;font-size:15px}
+  select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fafbfc}
+  textarea{min-height:70px;resize:vertical}
+  .stars{font-size:32px;letter-spacing:4px;cursor:pointer;user-select:none;text-align:center}
+  .stars span{color:#dcdfe4;transition:.1s}
+  .stars span.on{color:#ffb400}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);border-radius:20px;padding:8px 13px;font-size:14px;cursor:pointer;background:#fafbfc;transition:.12s}
+  .chip.on{background:var(--main);color:#fff;border-color:var(--main)}
+  .btn{width:100%;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer}
+  .btn-main{background:var(--main);color:#fff;margin-top:4px}
+  .btn-g{background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;margin-top:10px}
+  .btn-ghost{background:#eef0f3;color:#333;margin-top:8px}
+  #out,#internal{display:none}
+  .gen{background:#fff;border:1px dashed var(--main);border-radius:10px;padding:14px;font-size:15px;white-space:pre-wrap}
+  .steps{font-size:13px;color:var(--sub);margin-top:12px}
+  .steps li{margin:3px 0}
+  .thanks{background:#fff8e6;border:1px solid #ffe08a;border-radius:10px;padding:14px;font-size:15px}
+  .foot{text-align:center;color:#aab;font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo"><b id="brandTitle"></b></div>
+  <h1>謝謝你這次的訓練 💪</h1>
+  <div class="sub" id="subTitle"></div>
+
+  <div id="form">
+    <div class="card" id="staffCard" style="display:none">
+      <label class="q" id="staffLabel"></label>
+      <select id="staff"><option value="">請選擇</option></select>
+    </div>
+    <div class="card">
+      <label class="q">整體滿意度</label>
+      <div class="stars" id="stars">
+        <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+      </div>
+    </div>
+    <div class="card">
+      <label class="q" id="itemsQ">這次訓練哪些地方讓你有感？（可複選）</label>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="card">
+      <label class="q">還有想說的話嗎？（選填）</label>
+      <textarea id="note" placeholder="例：本來以為自己很強，結果平板撐不到一分鐘😅"></textarea>
+    </div>
+    <button class="btn btn-main" onclick="generate()">幫我整理成一則評論 →</button>
+  </div>
+
+  <div id="out" class="card">
+    <label class="q">✨ 幫你整理好了，看看順不順口</label>
+    <div class="gen" id="genText"></div>
+    <button class="btn btn-ghost" onclick="copyText(event)">📋 複製這段文字</button>
+    <a class="btn btn-g" id="gLink" href="#" target="_blank">前往 Google 發表 ★</a>
+    <ol class="steps">
+      <li>① 進去後點 ★★★★★ 五顆星</li>
+      <li>② 長按貼上剛剛複製的內容</li>
+      <li>③ 按「發布」就完成，謝謝你 🙏</li>
+    </ol>
+  </div>
+
+  <div id="internal" class="card"><div class="thanks" id="internalMsg"></div></div>
+  <div class="foot" id="footText"></div>
+</div>
+
+<script>
+// ===== Balance Studio 專屬設定 =====
+const CONFIG = {
+  brand: "BALANCE STUDIO 運動工作室",
+  subtitle: "花 20 秒勾選你的感受，我們幫你把想說的話整理好",
+  foot: "Balance Studio · 服務回饋",
+  googleReviewUrl: "https://www.google.com/maps/search/Balance+Studio+運動工作室+台中南屯",
+  askStaff: true,
+  staffLabel: "這次是哪位教練帶你？",
+  staff: ["Brian（B哥／布萊恩）", "Sandy", "Eddy", "其他教練"],
+  items: [
+    { k:"pro",     label:"教練專業細心", frag:["教練真的很專業也很細心","教練超專業，觀察力很強"] },
+    { k:"explain", label:"動作講解清楚", frag:["每個動作都講解得很清楚，讓我知道在練哪裡","動作的角度跟施力方式一點就通"] },
+    { k:"fix",     label:"改善痠痛/舊傷", frag:["困擾很久的痠痛改善了不少","連姿勢不良造成的不舒服都有被照顧到"] },
+    { k:"custom",  label:"課表客製化",   frag:["會依照我的狀況安排課表","每堂都是客製化，配合我當天的身體狀態"] },
+    { k:"progress",label:"進步很有感",   frag:["才幾堂就很有感，體態明顯不一樣","體力跟線條都看得到改變"] },
+    { k:"env",     label:"環境舒適自在", frag:["環境很舒適，練起來很自在","預約制不用怕別人的眼光"] },
+    { k:"nopush",  label:"沒有推銷壓力", frag:["完全沒有推銷壓力","沒有會費綁約，很單純"] },
+    { k:"fun",     label:"上課氣氛輕鬆", frag:["上課氣氛很輕鬆，教練也很幽默","邊練邊聊，不知不覺就上完了"] }
+  ],
+  openings: ["", "很推薦這裡！", "來 Balance Studio 訓練一陣子了，"],
+  closings: ["整體真的很滿意，推薦給想運動的你！", "會繼續練下去，也推薦給大家～", "謝謝教練，推推👍"],
+  minStarForGoogle: 4,
+  internalMsg: "<b>謝謝你願意告訴我們 🙏</b><br>看得出這次有些地方沒讓你滿意，這對我們超重要。你的意見我們已經收到，教練會親自看、並主動跟你聯繫調整。<br><span style='color:#666;font-size:13px'>（這則不會公開，只進我們內部改進。）</span>"
+};
+</script>
+<script>
+let score=0; const picked=new Set();
+document.getElementById('brandTitle').innerText=CONFIG.brand;
+document.getElementById('subTitle').innerText=CONFIG.subtitle;
+document.getElementById('footText').innerText=CONFIG.foot;
+document.getElementById('internalMsg').innerHTML=CONFIG.internalMsg;
+if(CONFIG.askStaff){
+  document.getElementById('staffCard').style.display='block';
+  document.getElementById('staffLabel').innerText=CONFIG.staffLabel;
+  const sel=document.getElementById('staff');
+  CONFIG.staff.forEach(n=>{const o=document.createElement('option');o.textContent=n;sel.appendChild(o);});
+}
+const chipBox=document.getElementById('chips');
+CONFIG.items.forEach(it=>{
+  const d=document.createElement('div');d.className='chip';d.textContent=it.label;d.dataset.k=it.k;
+  d.onclick=()=>{d.classList.toggle('on');d.classList.contains('on')?picked.add(it.k):picked.delete(it.k);};
+  chipBox.appendChild(d);
+});
+document.querySelectorAll('#stars span').forEach(s=>{s.onclick=()=>{score=+s.dataset.v;paintStars();};});
+function paintStars(){document.querySelectorAll('#stars span').forEach(s=>s.classList.toggle('on',+s.dataset.v<=score));}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function generate(){
+  const staff=CONFIG.askStaff?document.getElementById('staff').value:"";
+  const note=document.getElementById('note').value.trim();
+  document.getElementById('form').style.display='none';
+  if(score>0&&score<CONFIG.minStarForGoogle){document.getElementById('internal').style.display='block';save(staff,score,[...picked],note,'internal');return;}
+  let parts=[]; CONFIG.items.forEach(it=>{if(picked.has(it.k))parts.push(pick(it.frag));});
+  if(parts.length===0)parts.push("教練很專業，上課體驗很好");
+  let name=staff?staff.replace(/（.*?）/,''):'';
+  let body=(name?(name+' '):'')+parts.join('，')+'。';
+  if(note)body+=' '+note+'。';
+  let review=(pick(CONFIG.openings)+body+pick(CONFIG.closings)).replace(/。。/g,'。');
+  document.getElementById('genText').innerText=review;
+  document.getElementById('gLink').href=CONFIG.googleReviewUrl;
+  document.getElementById('out').style.display='block';
+  save(staff,score,[...picked],note,'google');
+}
+function copyText(e){navigator.clipboard?.writeText(document.getElementById('genText').innerText);e.target.innerText='✓ 已複製，去 Google 貼上吧';}
+function save(staff,score,tags,note,route){try{const all=JSON.parse(localStorage.getItem('balance_feedback')||'[]');all.push({t:new Date().toISOString(),staff,score,tags,note,route});localStorage.setItem('balance_feedback',JSON.stringify(all));}catch(e){}}
+</script>
+</body>
+</html>
