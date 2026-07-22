@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>服務回饋</title>
+<style>
+  :root{--main:#c8102e;--bg:#f5f6f8;--card:#fff;--ink:#222;--sub:#666;--line:#e3e5e9;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .wrap{max-width:460px;margin:0 auto;padding:22px 16px 60px}
+  h1{font-size:20px;text-align:center;margin:6px 0 2px}
+  .sub{text-align:center;color:var(--sub);font-size:13px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  label.q{display:block;font-weight:700;margin-bottom:10px;font-size:15px}
+  select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fafbfc}
+  textarea{min-height:70px;resize:vertical}
+  .stars{font-size:32px;letter-spacing:4px;cursor:pointer;user-select:none;text-align:center}
+  .stars span{color:#dcdfe4;transition:.1s}
+  .stars span.on{color:#ffb400}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);border-radius:20px;padding:8px 13px;font-size:14px;cursor:pointer;background:#fafbfc;transition:.12s}
+  .chip.on{background:var(--main);color:#fff;border-color:var(--main)}
+  .btn{width:100%;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer}
+  .btn-main{background:var(--main);color:#fff;margin-top:4px}
+  .btn-g{background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;margin-top:10px}
+  .btn-ghost{background:#eef0f3;color:#333;margin-top:8px}
+  #out,#internal{display:none}
+  .gen{background:#fff;border:1px dashed var(--main);border-radius:10px;padding:14px;font-size:15px;white-space:pre-wrap}
+  .steps{font-size:13px;color:var(--sub);margin-top:12px}
+  .steps li{margin:3px 0}
+  .thanks{background:#fff8e6;border:1px solid #ffe08a;border-radius:10px;padding:14px;font-size:15px}
+  .foot{text-align:center;color:#aab;font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="brandTitle"></h1>
+  <div class="sub" id="subTitle"></div>
+
+  <div id="form">
+    <div class="card" id="staffCard" style="display:none">
+      <label class="q" id="staffLabel"></label>
+      <select id="staff"><option value="">請選擇</option></select>
+    </div>
+
+    <div class="card">
+      <label class="q">整體滿意度</label>
+      <div class="stars" id="stars">
+        <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label class="q" id="itemsQ">這次哪些地方讓你有感？（可複選）</label>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="card">
+      <label class="q">還有想說的話嗎？（選填）</label>
+      <textarea id="note" placeholder="寫一句你的真實感受，評論會更真"></textarea>
+    </div>
+
+    <button class="btn btn-main" onclick="generate()">幫我整理成一則評論 →</button>
+  </div>
+
+  <div id="out" class="card">
+    <label class="q">✨ 幫你整理好了，看看順不順口</label>
+    <div class="gen" id="genText"></div>
+    <button class="btn btn-ghost" onclick="copyText(event)">📋 複製這段文字</button>
+    <a class="btn btn-g" id="gLink" href="#" target="_blank">前往 Google 發表 ★</a>
+    <ol class="steps">
+      <li>① 進去後點 ★★★★★ 五顆星</li>
+      <li>② 長按貼上剛剛複製的內容</li>
+      <li>③ 按「發布」就完成，謝謝你 🙏</li>
+    </ol>
+  </div>
+
+  <div id="internal" class="card">
+    <div class="thanks" id="internalMsg"></div>
+  </div>
+
+  <div class="foot" id="footText"></div>
+</div>
+
+<!-- ============================================================= -->
+<!--  設定區：換一家店，只改下面這個 CONFIG 就好                    -->
+<!-- ============================================================= -->
+<script>
+const CONFIG = {
+  brand: "你的店名",                          // 標題
+  subtitle: "花 20 秒勾選你的感受，我們幫你把想說的話整理好",
+  foot: "服務回饋 · demo",
+
+  // Google 一鍵評論連結：填你店家的 Place ID（見 README 教學）
+  // 沒有 Place ID 也可先用地圖搜尋連結
+  googleReviewUrl: "https://www.google.com/maps/search/你的店名+地區",
+
+  // 要不要問「哪位服務人員」；不要就設 false
+  askStaff: true,
+  staffLabel: "這次為你服務的是？",
+  staff: ["同仁A", "同仁B", "其他同仁"],
+
+  // 勾選項：label=顯示文字, frag=勾了會用到的句子（多版隨機挑，避免每則一樣）
+  items: [
+    { k:"pro",     label:"服務專業細心", frag:["服務真的很專業也很細心","很專業，該注意的都幫你顧到"] },
+    { k:"attitude",label:"態度親切",     frag:["態度非常親切","人很親切，感覺很舒服"] },
+    { k:"clear",   label:"說明清楚",     frag:["每個細節都說明得很清楚","講解很清楚，讓人很安心"] },
+    { k:"result",  label:"結果很滿意",   frag:["結果比我預期的還好","成果很有感，很滿意"] },
+    { k:"env",     label:"環境舒適整潔", frag:["環境很舒適整潔","空間乾淨，讓人很放鬆"] },
+    { k:"nopush",  label:"沒有推銷壓力", frag:["完全沒有推銷壓力","不會硬推，很單純舒服"] },
+    { k:"again",   label:"會想再回來",   frag:["之後還會想再來","已經決定要回訪了"] }
+  ],
+
+  // 開頭 / 結尾句（隨機）
+  openings: ["", "很推薦這裡！", "分享一下我的心得～"],
+  closings: ["整體很滿意，推薦給大家！", "會再回來，也推薦給大家～", "真心推薦！"],
+
+  // 控評：滿意度低於這個分數 → 不導 Google，只留內部
+  minStarForGoogle: 4,
+  internalMsg: "<b>謝謝你願意告訴我們 🙏</b><br>看得出這次有些地方沒讓你滿意，這對我們超重要。你的意見我們已經收到，會親自看、並主動聯繫你。<br><span style='color:#666;font-size:13px'>（這則不會公開，只進我們內部改進。）</span>"
+};
+</script>
+
+<script>
+// ==== 依 CONFIG 渲染 ====
+let score = 0; const picked = new Set();
+document.getElementById('brandTitle').innerText = CONFIG.brand;
+document.getElementById('subTitle').innerText = CONFIG.subtitle;
+document.getElementById('footText').innerText = CONFIG.foot;
+document.getElementById('internalMsg').innerHTML = CONFIG.internalMsg;
+
+if(CONFIG.askStaff){
+  document.getElementById('staffCard').style.display='block';
+  document.getElementById('staffLabel').innerText = CONFIG.staffLabel;
+  const sel=document.getElementById('staff');
+  CONFIG.staff.forEach(n=>{ const o=document.createElement('option'); o.textContent=n; sel.appendChild(o); });
+}
+const chipBox=document.getElementById('chips');
+CONFIG.items.forEach(it=>{
+  const d=document.createElement('div'); d.className='chip'; d.textContent=it.label; d.dataset.k=it.k;
+  d.onclick=()=>{ d.classList.toggle('on'); d.classList.contains('on')?picked.add(it.k):picked.delete(it.k); };
+  chipBox.appendChild(d);
+});
+document.querySelectorAll('#stars span').forEach(s=>{ s.onclick=()=>{ score=+s.dataset.v; paintStars(); }; });
+function paintStars(){ document.querySelectorAll('#stars span').forEach(s=>s.classList.toggle('on', +s.dataset.v<=score)); }
+
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+function generate(){
+  const staff=CONFIG.askStaff?document.getElementById('staff').value:"";
+  const note=document.getElementById('note').value.trim();
+  document.getElementById('form').style.display='none';
+
+  if(score>0 && score<CONFIG.minStarForGoogle){
+    document.getElementById('internal').style.display='block';
+    save(staff,score,[...picked],note,'internal'); return;
+  }
+
+  let parts=[];
+  CONFIG.items.forEach(it=>{ if(picked.has(it.k)) parts.push(pick(it.frag)); });
+  if(parts.length===0) parts.push("這次的服務體驗很好");
+
+  let opening=pick(CONFIG.openings);
+  let body=(staff? (staff+' ') : '') + parts.join('，') + '。';
+  if(note) body += ' ' + note + '。';
+  let review=(opening + body + pick(CONFIG.closings)).replace(/。。/g,'。');
+
+  document.getElementById('genText').innerText=review;
+  document.getElementById('gLink').href=CONFIG.googleReviewUrl;
+  document.getElementById('out').style.display='block';
+  save(staff,score,[...picked],note,'google');
+}
+function copyText(e){ navigator.clipboard?.writeText(document.getElementById('genText').innerText); e.target.innerText='✓ 已複製，去 Google 貼上吧'; }
+function save(staff,score,tags,note,route){
+  try{ const all=JSON.parse(localStorage.getItem('review_feedback')||'[]');
+    all.push({t:new Date().toISOString(),staff,score,tags,note,route});
+    localStorage.setItem('review_feedback',JSON.stringify(all)); }catch(e){}
+}
+</script>
+</body>
+</html>
