@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance Studio · 口碑後台</title>
+<style>
+  :root{--main:#c8102e;--bg:#0f1115;--card:#191c22;--ink:#eef1f5;--sub:#9aa3af;--line:#2a2f3a;--blue:#4f9dff;--green:#37c26b;--amber:#ffb400;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+  h1{font-size:20px;margin:4px 0 2px}
+  .sub{color:var(--sub);font-size:13px;margin-bottom:18px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .kpi{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .kpi .lab{color:var(--sub);font-size:13px;margin-bottom:6px}
+  .kpi .val{font-size:30px;font-weight:800}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}
+  .card h3{margin:0 0 12px;font-size:15px}
+  .bar{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:14px}
+  .bar .name{width:120px;flex-shrink:0;color:var(--sub)}
+  .bar .track{flex:1;background:#20242c;border-radius:6px;height:16px;overflow:hidden}
+  .bar .fill{height:100%;background:var(--blue);border-radius:6px}
+  .bar .n{width:26px;text-align:right;color:var(--sub)}
+  .split{display:flex;height:26px;border-radius:8px;overflow:hidden;font-size:12px}
+  .split .g{background:var(--green);display:flex;align-items:center;justify-content:center;color:#062}
+  .split .i{background:#5a4636;display:flex;align-items:center;justify-content:center;color:#ffd9a8}
+  .recent{font-size:13px;color:var(--sub);border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+  .recent div{margin:5px 0}
+  .tools{margin-top:18px;display:flex;gap:10px}
+  button{background:#232833;color:#cdd4de;border:1px solid var(--line);border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer}
+  .empty{color:var(--sub);text-align:center;padding:30px}
+  .stars{color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 Balance Studio · 口碑後台</h1>
+  <div class="sub">客人透過回饋表單填的資料，自動彙整成一頁（demo：讀本機資料）</div>
+
+  <div id="dash"></div>
+
+  <div class="tools">
+    <button onclick="seed()">載入示範資料</button>
+    <button onclick="clearAll()">清空</button>
+  </div>
+</div>
+
+<script>
+const LABELS={pro:"教練專業細心",explain:"動作講解清楚",fix:"改善痠痛/舊傷",custom:"課表客製化",progress:"進步很有感",env:"環境舒適自在",nopush:"沒有推銷壓力",fun:"上課氣氛輕鬆"};
+const KEY="balance_feedback";
+
+function load(){ try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return[]} }
+
+function render(){
+  const data=load();
+  const el=document.getElementById('dash');
+  if(!data.length){ el.innerHTML='<div class="card empty">目前還沒有資料。<br>可先按下面「載入示範資料」看後台長怎樣，<br>或到回饋表單填幾筆。</div>'; return; }
+
+  const n=data.length;
+  const avg=(data.reduce((s,d)=>s+(+d.score||0),0)/n).toFixed(2);
+  const high=data.filter(d=>+d.score>=4).length;
+  const highPct=Math.round(high/n*100);
+  const g=data.filter(d=>d.route==='google').length, i=n-g;
+
+  // 勾選項排行
+  const cnt={}; data.forEach(d=>(d.tags||[]).forEach(t=>cnt[t]=(cnt[t]||0)+1));
+  const ranked=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const maxTag=ranked.length?ranked[0][1]:1;
+  // 教練排行
+  const cc={}; data.forEach(d=>{ if(d.staff){const s=d.staff.replace(/（.*?）/,'');cc[s]=(cc[s]||0)+1;} });
+  const coaches=Object.entries(cc).sort((a,b)=>b[1]-a[1]);
+  const maxC=coaches.length?coaches[0][1]:1;
+
+  const bars=(arr,max)=>arr.map(([k,v])=>`<div class="bar"><div class="name">${LABELS[k]||k}</div><div class="track"><div class="fill" style="width:${Math.round(v/max*100)}%"></div></div><div class="n">${v}</div></div>`).join('');
+
+  const recent=data.slice(-5).reverse().map(d=>{
+    const st='★'.repeat(+d.score||0);
+    const tags=(d.tags||[]).map(t=>LABELS[t]||t).slice(0,3).join('、');
+    return `<div><span class="stars">${st}</span> ${d.staff?d.staff.replace(/（.*?）/,'')+'｜':''}${tags}${d.note?'｜「'+d.note.slice(0,18)+'」':''}</div>`;
+  }).join('');
+
+  el.innerHTML=`
+    <div class="row">
+      <div class="kpi"><div class="lab">總回饋數</div><div class="val">${n}</div></div>
+      <div class="kpi"><div class="lab">平均評分</div><div class="val">${avg} <span class="stars" style="font-size:18px">★</span></div></div>
+      <div class="kpi"><div class="lab">高分比例(4★+)</div><div class="val">${highPct}%</div></div>
+    </div>
+    <div class="card">
+      <h3>好評導 Google vs 負評留內部</h3>
+      <div class="split">
+        <div class="g" style="width:${Math.round(g/n*100)||0}%">導 Google ${g}</div>
+        <div class="i" style="width:${Math.round(i/n*100)||0}%">內部 ${i}</div>
+      </div>
+    </div>
+    <div class="card"><h3>客人最滿意什麼（勾選排行）</h3>${bars(ranked,maxTag)||'<div class="sub">尚無</div>'}</div>
+    ${coaches.length?`<div class="card"><h3>教練被點名次數</h3>${bars(coaches,maxC)}</div>`:''}
+    <div class="card"><h3>最近回饋</h3><div class="recent">${recent}</div></div>
+  `;
+}
+
+function seed(){
+  const demo=[
+    {score:5,staff:"Brian",tags:["pro","explain","fix"],note:"平板撐不到一分鐘",route:"google"},
+    {score:5,staff:"Brian",tags:["pro","custom","progress"],note:"",route:"google"},
+    {score:5,staff:"Sandy",tags:["pro","env","nopush"],note:"退休後體力進步",route:"google"},
+    {score:4,staff:"Eddy",tags:["explain","fix"],note:"郵局體測最高分",route:"google"},
+    {score:5,staff:"Brian",tags:["pro","fun","progress"],note:"",route:"google"},
+    {score:5,staff:"Sandy",tags:["custom","progress"],note:"半年增重5公斤",route:"google"},
+    {score:3,staff:"Brian",tags:["env"],note:"希望器材再多一點",route:"internal"},
+    {score:5,staff:"Brian",tags:["pro","explain","nopush"],note:"",route:"google"}
+  ].map(d=>({t:new Date().toISOString(),...d}));
+  localStorage.setItem(KEY,JSON.stringify(demo)); render();
+}
+function clearAll(){ localStorage.removeItem(KEY); render(); }
+render();
+</script>
+</body>
+</html>
